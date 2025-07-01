@@ -1,11 +1,21 @@
-# Use a lightweight Java runtime base image
-FROM openjdk:17-jdk-slim
+# ---------- Stage 1: Build & Test ----------
+FROM maven:3.9.6-eclipse-temurin-8 AS builder
 
-# Set working directory inside the container
 WORKDIR /app
 
-# Copy the JAR file from the target folder to the container and rename it
-COPY target/code-quality-demo-1.0-SNAPSHOT.jar app.jar
+# Copy your source and pom.xml
+COPY . .
 
-# Set the command to run the JAR
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run tests during the build
+RUN mvn clean install
+
+# ---------- Stage 2: Runtime (Optional) ----------
+FROM openjdk:8-jdk-slim
+
+WORKDIR /app
+
+# Copy only compiled classes or packaged JAR if exists
+COPY --from=builder /app/target /app/target
+
+# Keep the container alive (or you can set your app JAR to run if needed)
+CMD ["tail", "-f", "/dev/null"]
